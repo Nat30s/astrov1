@@ -1,0 +1,314 @@
+---
+import BlogLayout from '../layouts/BlogLayout.astro';
+const pageTitle = "Interactive Content Library";
+const pageDesc = "A complete, filterable archive of all reviewed content.";
+
+// NEW: Helper function to create URL-friendly strings (slugs)
+const slugify = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '-') // Replace spaces with -
+    .replace(/[^\w\-]+/g, '') // Remove all non-word chars
+    .replace(/\-\-+/g, '-') // Replace multiple - with single -
+    .replace(/^-+/, '') // Trim - from start of text
+    .replace(/-+$/, ''); // Trim - from end of text
+};
+
+// Fetch data from all Markdown files
+// IMPORTANT: Adjust this path to where your .md files are located!
+const allPosts = await Astro.glob('../pages/posts/*.md');
+
+// Format the data into a clean array
+const tableData = allPosts.map(post => ({
+  title: post.frontmatter.title,
+  category: post.frontmatter.category,
+  tags: post.frontmatter.tags || [], // Ensure tags is always an array
+  reviewDate: post.frontmatter.reviewDate,
+  postedDate: post.frontmatter.postedDate,
+  source: post.frontmatter.source,
+  channel: post.frontmatter.channel,
+  postLink: post.url,
+  sourceLink: post.frontmatter.sourceLink
+}));
+
+// Automatically generate unique lists for filters
+const uniqueCategories = [...new Set(tableData.map(item => item.category).filter(Boolean))];
+const uniqueTags = [...new Set(tableData.flatMap(item => item.tags).filter(Boolean))];
+const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Boolean))];
+---
+
+<BlogLayout title={pageTitle} description={pageDesc}>
+  
+  <header>
+    <h1>Interactive Content Library</h1>
+    <p>A complete archive of all reviewed content.</p>
+  </header>
+  
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search content...">
+    <button class="reset-btn" id="reset-btn">Reset All</button>
+  </div>
+  
+  <div class="filter-bar" id="filter-bar">
+    <span>Filters</span>
+    <button class="dropdown-btn" id="dropdown-btn">▼</button>
+  </div>
+  
+  <div class="filters-container" id="filters-container">
+    <div class="filter-group">
+      <h4>Categories</h4>
+      <div id="category-filters">
+        {uniqueCategories.map(category => (
+          <label><input type="checkbox" value={category} data-group="category"> {category}</label>
+        ))}
+      </div>
+    </div>
+    <div class="filter-group">
+      <h4>Tags</h4>
+      <div id="tag-filters">
+        {uniqueTags.map(tag => (
+          <label><input type="checkbox" value={tag} data-group="tag"> {tag}</label>
+        ))}
+      </div>
+    </div>
+    <div class="filter-group">
+      <h4>Sources</h4>
+      <div id="source-filters">
+        {uniqueSources.map(source => (
+          <label><input type="checkbox" value={source} data-group="source"> {source}</label>
+        ))}
+      </div>
+    </div>
+  </div>
+  
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th data-key="title">Title</th>
+          <th data-key="category">Category</th>
+          <th data-key="tags">Tags</th>
+          <th data-key="reviewDate">Review Date</th>
+          <th data-key="postedDate">Posted Date</th>
+          <th data-key="source">Source</th>
+          <th data-key="channel">Channel/Publication</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody id="data-table-body">
+        {tableData.slice(0, 10).map(item => (
+          <tr>
+            <td><a href={item.postLink}>{item.title}</a></td>
+            <td><a href={`/category/${slugify(item.category)}/`}>{item.category}</a></td>
+            <td>
+              {item.tags.map((tag, index) => (
+                <>
+                  <a href={`/tag/${slugify(tag)}/`}>{tag}</a>
+                  {index < item.tags.length - 1 ? ', ' : ''}
+                </>
+              ))}
+            </td>
+            <td>{item.reviewDate}</td>
+            <td>{item.postedDate}</td>
+            <td>{item.source}</td>
+            <td>{item.channel}</td>
+            <td>
+              <a href={item.postLink} target="_blank">Post</a> |
+              <a href={item.sourceLink} target="_blank">Source</a>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="pagination">
+    <div class="page-controls" id="page-controls"></div>
+    <div class="page-size">
+      <label for="page-size">Show:</label>
+      <select id="page-size">
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
+
+</BlogLayout>
+
+<style>
+  /* Your CSS remains unchanged */
+  /* --- Base Styles --- */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* ... etc ... */
+</style>
+
+<script define:vars={{ tableData }}>
+  document.addEventListener('DOMContentLoaded', () => {
+    // The 'tableData' variable is provided by Astro.
+
+    // NEW: The slugify function is needed here too for client-side rendering.
+    const slugify = (text) => {
+        if (!text) return '';
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+    };
+
+    const tableBody = document.getElementById('data-table-body');
+    // ... other element selectors are the same ...
+    const filtersContainer = document.getElementById('filters-container');
+    const dropdownBtn = document.getElementById('dropdown-btn');
+    const filterBar = document.getElementById('filter-bar');
+    const searchInput = document.getElementById('search-input');
+    const resetBtn = document.getElementById('reset-btn');
+    const pageControls = document.getElementById('page-controls');
+    const pageSizeSelect = document.getElementById('page-size');
+
+    let currentSort = { key: null, order: 'asc' };
+    let currentPage = 1;
+    let pageSize = parseInt(pageSizeSelect.value);
+
+    const sourceIcons = {
+        Youtube: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24"><path d="M23.5 6.2a2.98 2.98 0 0 0-2.1-2.1C19 3.5 12 3.5 12 3.5s-7 0-9.4.6a2.98 2.98 0 0 0-2.1 2.1A31.86 31.86 0 0 0 0 12a31.86 31.86 0 0 0 .5 5.8 2.98 2.98 0 0 0 2.1 2.1C5 20.5 12 20.5 12 20.5s7 0 9.4-.6a2.98 2.98 0 0 0 2.1-2.1A31.86 31.86 0 0 0 24 12a31.86 31.86 0 0 0-.5-5.8zM9.8 15.3V8.7l6.4 3.3-6.4 3.3z"></path></svg>`,
+        News: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M21 6h-3V2H6v4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM8 4h8v2H8V4zm13 16H3V8h2v10h14V8h2v12z"></path><rect x="11" y="10" width="6" height="2"/><rect x="11" y="14" width="6" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="7" y="14" width="2" height="2"/></svg>`,
+        Blog: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="brown" viewBox="0 0 24 24"><path d="M4 22h16v-2H4v2zm0-4h10v-2H4v2zm0-4h16v-2H4v2zm0-4h10V8H4v2zm0-8v2h16V2H4z"/></svg>`
+    };
+
+    // --- MAJOR UPDATE: The renderTable function now creates links ---
+    function renderTable(data) {
+      tableBody.innerHTML = '';
+      if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No results found</td></tr>`;
+        renderPagination(0); // Update pagination for no results
+        return;
+      }
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageData = data.slice(startIndex, startIndex + pageSize);
+      
+      pageData.forEach(item => {
+        const tr = document.createElement('tr');
+        const icon = sourceIcons[item.source] || '';
+
+        // Create the linked tags HTML string
+        const tagsHtml = item.tags.map(tag => 
+            `<a href="/tag/${slugify(tag)}/">${tag}</a>`
+        ).join(', ');
+
+        tr.innerHTML = `
+          <td><a href="${item.postLink}">${item.title}</a></td>
+          <td><a href="/category/${slugify(item.category)}/">${item.category}</a></td>
+          <td>${tagsHtml}</td>
+          <td>${item.reviewDate}</td>
+          <td>${item.postedDate}</td>
+          <td>${icon}${item.source}</td>
+          <td>${item.channel}</td>
+          <td>
+            <a href="${item.postLink}" target="_blank">Post</a> |
+            <a href="${item.sourceLink}" target="_blank">Source</a>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+      renderPagination(data.length);
+    }
+    
+    // The rest of your JavaScript (pagination, filtering, sorting logic) remains the same.
+    // ... paste the rest of your JS functions here: renderPagination, getActiveFilters, applyAll, resetAll ...
+    // ... and all your event listeners ...
+
+    function renderPagination(totalItems) {
+      pageControls.innerHTML = '';
+      const totalPages = Math.ceil(totalItems / pageSize);
+      if (totalPages <= 1) return;
+      const prevBtn = document.createElement('button');
+      prevBtn.textContent = "Prev";
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.onclick = () => { currentPage--; applyAll(); };
+      pageControls.appendChild(prevBtn);
+      for(let i=1; i<= totalPages; i++){
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if(i === currentPage) btn.classList.add('active');
+        btn.onclick = () => { currentPage = i; applyAll(); };
+        pageControls.appendChild(btn);
+      }
+      const nextBtn = document.createElement('button');
+      nextBtn.textContent = "Next";
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.onclick = () => { currentPage++; applyAll(); };
+      pageControls.appendChild(nextBtn);
+    }
+
+    function getActiveFilters() {
+      const checked = [...document.querySelectorAll('input[type="checkbox"]:checked')];
+      return {
+        categories: checked.filter(c => c.dataset.group === "category").map(c => c.value),
+        tags: checked.filter(c => c.dataset.group === "tag").map(c => c.value),
+        sources: checked.filter(c => c.dataset.group === "source").map(c => c.value)
+      };
+    }
+
+    function applyAll() {
+      const { categories, tags, sources } = getActiveFilters();
+      const query = searchInput.value.toLowerCase();
+      let filtered = tableData.filter(item => {
+        const matchCategory = categories.length ? categories.includes(item.category) : true;
+        const matchTags = tags.length ? tags.some(tag => item.tags && item.tags.includes(tag)) : true;
+        const matchSource = sources.length ? sources.includes(item.source) : true;
+        const combinedText = `${item.title} ${item.category} ${item.tags ? item.tags.join(" ") : ''} ${item.source} ${item.channel}`.toLowerCase();
+        const matchSearch = combinedText.includes(query);
+        return matchCategory && matchTags && matchSource && matchSearch;
+      });
+      if (currentSort.key) {
+        filtered.sort((a, b) => {
+          let valA = a[currentSort.key]; let valB = b[currentSort.key];
+          if (currentSort.key.toLowerCase().includes("date")) { valA = new Date(valA); valB = new Date(valB); }
+          if (Array.isArray(valA)) valA = valA.join(", "); if (Array.isArray(valB)) valB = valB.join(", ");
+          if (valA < valB) return currentSort.order === 'asc' ? -1 : 1;
+          if (valA > valB) return currentSort.order === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+      const totalPages = Math.ceil(filtered.length / pageSize);
+      if(currentPage > totalPages) currentPage = totalPages || 1;
+      renderTable(filtered);
+    }
+
+    function resetAll() {
+      searchInput.value = "";
+      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+      currentSort = { key: null, order: 'asc' };
+      document.querySelectorAll("thead th").forEach(t => t.classList.remove("sort-asc", "sort-desc"));
+      currentPage = 1;
+      applyAll();
+    }
+    
+    filterBar.addEventListener('click', () => {
+      const isVisible = filtersContainer.style.display === 'flex';
+      filtersContainer.style.display = isVisible ? 'none' : 'flex';
+      dropdownBtn.textContent = isVisible ? '▼' : '▲';
+    });
+
+    filtersContainer.addEventListener("change", () => { currentPage = 1; applyAll(); });
+    searchInput.addEventListener("input", () => { currentPage = 1; applyAll(); });
+    resetBtn.addEventListener("click", resetAll);
+    pageSizeSelect.addEventListener("change", () => { pageSize = parseInt(pageSizeSelect.value); currentPage = 1; applyAll(); });
+    
+    document.querySelectorAll("thead th[data-key]").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.dataset.key;
+        if (currentSort.key === key) { currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';} 
+        else { currentSort.key = key; currentSort.order = 'asc'; }
+        document.querySelectorAll("thead th").forEach(t => t.classList.remove("sort-asc", "sort-desc"));
+        th.classList.add(currentSort.order === 'asc' ? "sort-asc" : "sort-desc");
+        applyAll();
+      });
+    });
+
+    // Initial render on page load
+    applyAll();
+  });
+</script>
