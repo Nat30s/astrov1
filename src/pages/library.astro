@@ -1,17 +1,31 @@
 ---
+// --- SERVER-SIDE SCRIPT (Runs at build time) ---
+
+// 1. IMPORT necessary functions and components
 import { getCollection } from 'astro:content';
 import BlogLayout from '../layouts/BlogLayout.astro';
 
+// Page metadata
 const pageTitle = "Interactive Content Library";
 const pageDesc = "A complete, filterable archive of all reviewed content.";
 
+// Helper function to create URL-friendly strings (slugs)
 const slugify = (text: string) => {
   if (!text) return '';
-  return text.toString().toLowerCase().replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+  return text
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 };
 
+// 2. FETCH posts from your 'article' collection
 const allPosts = await getCollection('article');
+
+// 3. MAP the data into the structure our table needs
 const tableData = allPosts.map(post => ({
   title: post.data.title,
   category: post.data.category,
@@ -20,33 +34,39 @@ const tableData = allPosts.map(post => ({
   postedDate: post.data.postedDate,
   source: post.data.source,
   channel: post.data.channel,
-  postLink: `/article/${post.slug}/`,
+  postLink: `/article/${post.slug}/`, // Construct the correct URL for articles
   sourceLink: post.data.sourceLink
 }));
 
+// Automatically generate unique lists for the filter checkboxes
 const uniqueCategories = [...new Set(tableData.map(item => item.category).filter(Boolean))];
 const uniqueTags = [...new Set(tableData.flatMap(item => item.tags).filter(Boolean))];
 const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Boolean))];
 ---
+
 <BlogLayout title={pageTitle} description={pageDesc}>
+  
   <header>
     <h1>Interactive Content Library</h1>
     <p>A complete archive of all reviewed content.</p>
   </header>
+  
   <div class="search-bar">
     <input type="text" id="search-input" placeholder="Search content...">
     <button class="reset-btn" id="reset-btn">Reset All</button>
   </div>
+  
   <div class="filter-bar" id="filter-bar">
     <span>Filters</span>
     <button class="dropdown-btn" id="dropdown-btn">▼</button>
   </div>
+  
   <div class="filters-container" id="filters-container">
     <div class="filter-group">
       <h4>Categories</h4>
       <div id="category-filters">
         {uniqueCategories.map(category => (
-          <label><input type="checkbox" value={category} data-group="category" /> {category}</label>
+          <label><input type="checkbox" value={category} data-group="category"> {category}</label>
         ))}
       </div>
     </div>
@@ -54,7 +74,7 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       <h4>Tags</h4>
       <div id="tag-filters">
         {uniqueTags.map(tag => (
-          <label><input type="checkbox" value={tag} data-group="tag" /> {tag}</label>
+          <label><input type="checkbox" value={tag} data-group="tag"> {tag}</label>
         ))}
       </div>
     </div>
@@ -62,30 +82,31 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       <h4>Sources</h4>
       <div id="source-filters">
         {uniqueSources.map(source => (
-          <label><input type="checkbox" value={source} data-group="source" /> {source}</label>
+          <label><input type="checkbox" value={source} data-group="source"> {source}</label>
         ))}
       </div>
     </div>
   </div>
+  
   <div class="table-wrapper">
     <table>
-      <caption class="sr-only">{pageTitle}</caption>
       <thead>
         <tr>
-          <th data-key="title" scope="col">Title</th>
-          <th data-key="category" scope="col">Category</th>
-          <th data-key="tags" scope="col">Tags</th>
-          <th data-key="reviewDate" scope="col">Review Date</th>
-          <th data-key="postedDate" scope="col">Posted Date</th>
-          <th data-key="source" scope="col">Source</th>
-          <th data-key="channel" scope="col">Channel/Publication</th>
-          <th scope="col">Link</th>
+          <th data-key="title">Title</th>
+          <th data-key="category">Category</th>
+          <th data-key="tags">Tags</th>
+          <th data-key="reviewDate">Review Date</th>
+          <th data-key="postedDate">Posted Date</th>
+          <th data-key="source">Source</th>
+          <th data-key="channel">Channel/Publication</th>
+          <th>Link</th>
         </tr>
       </thead>
       <tbody id="data-table-body">
-      </tbody>
+        </tbody>
     </table>
   </div>
+  
   <div class="pagination">
     <div class="page-controls" id="page-controls"></div>
     <div class="page-size">
@@ -98,149 +119,172 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       </select>
     </div>
   </div>
+
 </BlogLayout>
+
 <style>
+/* --- Base Styles --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --font: system-ui, sans-serif;
-  --bg: #f9fafb;
-  --text: #23272f;
-  --header: #f3f4f6;
-  --border: #e5e7eb;
-  --accent: #6366f1;
-  --hover: #e0e7ff;
+--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+--bg-color: #ffffff;
+--text-color: #111827;
+--accent-color: #6366f1;
+--border-color: #e5e7eb;
+--header-bg: #f9fafb;
+--hover-bg: #f3f4f6;
 }
-
 body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
+font-family: var(--font-sans);
+background-color: var(--bg-color);
+color: var(--text-color);
+line-height: 1.6;
 }
-
-header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.2em;
-}
-
-header p { color: #697181; }
-
+header { text-align: center; margin-bottom: 2rem; }
+header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+header p { font-size: 1.1rem; color: #6b7280; }
+/* --- Search Bar with Reset --- */
 .search-bar {
-  display: flex; gap: 1em; align-items: center; margin-bottom: 1em;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 1rem;
 }
-
 .search-bar input {
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 0.7em 1em; font-size: 1em; min-width: 240px; background: #fff;
+width: 300px;
+padding: 0.5rem 1rem;
+border: 1px solid var(--border-color);
+border-radius: 8px;
+font-size: 1rem;
 }
-
 .reset-btn {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background-color: var(--header);
-  padding: 0.6em 1.2em;
-  cursor: pointer;
-  font-size: 1em;
+padding: 0.5rem 1rem;
+margin-left: 1rem;
+border: 1px solid var(--border-color);
+border-radius: 8px;
+background-color: var(--header-bg);
+cursor: pointer;
+font-size: 0.9rem;
 }
-
+.reset-btn:hover {
+background-color: var(--hover-bg);
+}
+/* --- Collapsible Filter Bar --- */
 .filter-bar {
-  display: flex; align-items: center; gap: 1em; 
-  background: var(--header); border: 1px solid var(--border);
-  border-radius: 8px; margin-bottom: 1em; padding: 0.85em 1.2em;
+display: flex;
+justify-content: space-between;
+align-items: center;
+padding: 1rem 1.5rem;
+margin-bottom: 1rem;
+background-color: var(--header-bg);
+border: 1px solid var(--border-color);
+border-radius: 12px;
+cursor: pointer;
 }
-
+.filter-bar span { font-weight: 600; }
 .dropdown-btn {
-  padding: 0 0.3em;
-  background: none;
-  border: none;
-  color: var(--accent);
-  font-size: 1em;
-  font-weight: bold;
-  cursor: pointer;
+background: none;
+border: none;
+font-weight: 600;
+color: var(--accent-color);
+cursor: pointer;
 }
-
 .filters-container {
-  display: none;
-  gap: 1.8em; padding: 1em 1.2em 1.5em 1.2em; margin-bottom: 2em;
-  background-color: var(--header);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+display: none;
+flex-wrap: wrap;
+gap: 2rem;
+padding: 1.5rem;
+margin-bottom: 2rem;
+background-color: var(--header-bg);
+border: 1px solid var(--border-color);
+border-radius: 12px;
+animation: fadeIn 0.3s ease;
 }
-
-.filter-group { display: flex; flex-direction: column; gap: 0.36em; }
-.filter-group h4 { margin-bottom: 0.3em; font-weight: 600; }
-.filter-group label { cursor: pointer; }
-
-/* Table styles */
+.filter-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.filter-group h4 { font-weight: 600; margin-bottom: 0.5rem; border-bottom: 2px solid var(--accent-color); padding-bottom: 0.25rem;}
+.filter-group div { display: flex; flex-direction: column; }
+.filter-group label { cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
+.filter-group input[type="checkbox"] { accent-color: var(--accent-color); }
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(-5px); }
+to { opacity: 1; transform: translateY(0); }
+}
+/* --- Table Styles --- */
 .table-wrapper { overflow-x: auto; }
 table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 7px 7px 0 0;
-  font-size: 1em;
+width: 100%;
+border-collapse: collapse;
+font-size: 0.9rem;
+border: 1px solid var(--border-color);
+border-radius: 12px;
+overflow: hidden;
 }
-caption.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-th, td {
-  text-align: left;
-  padding: 0.85em 1em;
-  border-bottom: 1px solid var(--border);
+th, td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
+thead tr { background-color: var(--header-bg); }
+th { font-weight: 600; cursor: pointer; user-select: none; }
+thead th:first-child { border-top-left-radius: 12px; }
+thead th:last-child { border-top-right-radius: 12px; }
+tbody tr { transition: background-color 0.2s; }
+tbody tr:hover { background-color: var(--hover-bg); }
+a { color: var(--accent-color); text-decoration: none; font-weight: 500; }
+a:hover { text-decoration: underline; }
+/* Sort Indicator */
+.sort-asc::after { content: " ▲"; font-size: 0.7em; }
+.sort-desc::after { content: " ▼"; font-size: 0.7em; }
+/* Icons Styling */
+.icon {
+width: 16px;
+height: 16px;
+vertical-align: middle;
+margin-right: 6px;
 }
-th {
-  font-weight: 650;
-  background: var(--header);
-}
-tbody tr:nth-child(even) {
-  background: #f5f6fa;
-}
-tbody tr:hover {
-  background: var(--hover);
-}
-
-td a[href*='/tag/'] {
-  display: inline-block;
-  background: #eef2ff;
-  color: #23298f;
-  border-radius: 1em;
-  padding: 0.2em 0.8em;
-  margin-right: 0.2em;
-  font-size: 0.97em;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: underline;
-  font-weight: 500;
-}
-
-.sort-asc::after { content: " ▲"; font-size: 0.8em; }
-.sort-desc::after { content: " ▼"; font-size: 0.8em; }
-
-/* Pagination */
+/* --- Pagination --- */
 .pagination {
-  display: flex; gap: 2em; align-items: center;
-  margin-top: 1.8em;
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-top: 1rem;
 }
-.page-controls { display: flex; gap: 0.3em; }
+.page-controls {
+display: flex;
+gap: 6px;
+}
 .page-controls button {
-  padding: 0.4em 0.9em;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  cursor: pointer;
-  background: var(--header);
+padding: 4px 8px;
+border: 1px solid var(--border-color);
+border-radius: 6px;
+background: var(--header-bg);
+cursor: pointer;
 }
-.page-controls button.active { background: var(--accent); color: white; }
-.page-size { display: flex; align-items: center; gap: 0.5em; }
-
-@media (max-width: 700px) {
-  th, td { padding: 0.56em 0.7em; font-size: 0.99em; }
+.page-controls button.active {
+background: var(--accent-color);
+color: white;
+}
+.page-size {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+.page-size select {
+padding: 4px 6px;
+border: 1px solid var(--border-color);
+border-radius: 6px;
 }
 </style>
+
 <script define:vars={{ tableData }}>
   document.addEventListener('DOMContentLoaded', () => {
-    const slugify = text => !text ? '' : text.toString().toLowerCase()
-      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+    // The 'tableData' variable is now available here, passed from Astro.
+
+    // Helper function to create URL-friendly strings (needed for client-side rendering)
+    const slugify = (text) => {
+        if (!text) return '';
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+    };
+
+    // Get references to all the interactive HTML elements
     const tableBody = document.getElementById('data-table-body');
     const filtersContainer = document.getElementById('filters-container');
     const dropdownBtn = document.getElementById('dropdown-btn');
@@ -249,9 +293,20 @@ a {
     const resetBtn = document.getElementById('reset-btn');
     const pageControls = document.getElementById('page-controls');
     const pageSizeSelect = document.getElementById('page-size');
+
+    // State variables for interactivity
     let currentSort = { key: null, order: 'asc' };
     let currentPage = 1;
     let pageSize = parseInt(pageSizeSelect.value);
+
+    // SVG icons for sources
+    const sourceIcons = {
+        Youtube: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24"><path d="M23.5 6.2a2.98 2.98 0 0 0-2.1-2.1C19 3.5 12 3.5 12 3.5s-7 0-9.4.6a2.98 2.98 0 0 0-2.1 2.1A31.86 31.86 0 0 0 0 12a31.86 31.86 0 0 0 .5 5.8 2.98 2.98 0 0 0 2.1 2.1C5 20.5 12 20.5 12 20.5s7 0 9.4-.6a2.98 2.98 0 0 0 2.1-2.1A31.86 31.86 0 0 0 24 12a31.86 31.86 0 0 0-.5-5.8zM9.8 15.3V8.7l6.4 3.3-6.4 3.3z"></path></svg>`,
+        News: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M21 6h-3V2H6v4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM8 4h8v2H8V4zm13 16H3V8h2v10h14V8h2v12z"></path><rect x="11" y="10" width="6" height="2"/><rect x="11" y="14" width="6" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="7" y="14" width="2" height="2"/></svg>`,
+        Blog: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="brown" viewBox="0 0 24 24"><path d="M4 22h16v-2H4v2zm0-4h10v-2H4v2zm0-4h16v-2H4v2zm0-4h10V8H4v2zm0-8v2h16V2H4z"/></svg>`
+    };
+
+    // --- Core Functions for Interactivity ---
 
     function renderTable(data) {
       tableBody.innerHTML = '';
@@ -262,28 +317,32 @@ a {
       }
       const startIndex = (currentPage - 1) * pageSize;
       const pageData = data.slice(startIndex, startIndex + pageSize);
+      
       pageData.forEach(item => {
         const tr = document.createElement('tr');
-        const tagsHtml = (item.tags || []).map(tag =>
-          `<a href="/tag/${slugify(tag)}/">${tag}</a>`
-        ).join('');
+        const icon = sourceIcons[item.source] || '';
+        const tagsHtml = (item.tags || []).map(tag => 
+            `<a href="/tag/${slugify(tag)}/">${tag}</a>`
+        ).join(', ');
+
         tr.innerHTML = `
           <td><a href="${item.postLink}">${item.title}</a></td>
           <td><a href="/category/${slugify(item.category)}/">${item.category}</a></td>
           <td>${tagsHtml}</td>
           <td>${item.reviewDate || ''}</td>
           <td>${item.postedDate || ''}</td>
-          <td>${item.source || ''}</td>
+          <td>${icon}${item.source || ''}</td>
           <td>${item.channel || ''}</td>
           <td>
-            <a href="${item.postLink}" target="_blank">Post</a>
-            ${item.sourceLink ? '| <a href="'+item.sourceLink+'" target="_blank">Source</a>' : ""}
+            <a href="${item.postLink}" target="_blank">Post</a> |
+            <a href="${item.sourceLink}" target="_blank">Source</a>
           </td>
         `;
         tableBody.appendChild(tr);
       });
       renderPagination(data.length);
     }
+    
     function renderPagination(totalItems) {
       pageControls.innerHTML = '';
       const totalPages = Math.ceil(totalItems / pageSize);
@@ -306,14 +365,16 @@ a {
       nextBtn.onclick = () => { currentPage++; applyAll(); };
       pageControls.appendChild(nextBtn);
     }
+
     function getActiveFilters() {
-      const checked = Array.from(document.querySelectorAll('input[type="checkbox"]:checked'));
+      const checked = [...document.querySelectorAll('input[type="checkbox"]:checked')];
       return {
         categories: checked.filter(c => c.dataset.group === "category").map(c => c.value),
         tags: checked.filter(c => c.dataset.group === "tag").map(c => c.value),
         sources: checked.filter(c => c.dataset.group === "source").map(c => c.value)
       };
     }
+
     function applyAll() {
       const { categories, tags, sources } = getActiveFilters();
       const query = searchInput.value.toLowerCase();
@@ -325,6 +386,7 @@ a {
         const matchSearch = combinedText.includes(query);
         return matchCategory && matchTags && matchSource && matchSearch;
       });
+
       if (currentSort.key) {
         filtered.sort((a, b) => {
           let valA = a[currentSort.key]; let valB = b[currentSort.key];
@@ -335,10 +397,12 @@ a {
           return 0;
         });
       }
+
       const totalPages = Math.ceil(filtered.length / pageSize);
       if(currentPage > totalPages) currentPage = totalPages || 1;
       renderTable(filtered);
     }
+
     function resetAll() {
       searchInput.value = "";
       document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -347,25 +411,33 @@ a {
       currentPage = 1;
       applyAll();
     }
+    
+    // --- Event Listeners ---
+
     filterBar.addEventListener('click', () => {
       const isVisible = filtersContainer.style.display === 'flex';
       filtersContainer.style.display = isVisible ? 'none' : 'flex';
       dropdownBtn.textContent = isVisible ? '▼' : '▲';
     });
+
     filtersContainer.addEventListener("change", () => { currentPage = 1; applyAll(); });
     searchInput.addEventListener("input", () => { currentPage = 1; applyAll(); });
     resetBtn.addEventListener("click", resetAll);
     pageSizeSelect.addEventListener("change", () => { pageSize = parseInt(pageSizeSelect.value); currentPage = 1; applyAll(); });
+    
     document.querySelectorAll("thead th[data-key]").forEach(th => {
       th.addEventListener("click", () => {
         const key = th.dataset.key;
-        if (currentSort.key === key) { currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';}
+        if (currentSort.key === key) { currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';} 
         else { currentSort.key = key; currentSort.order = 'asc'; }
         document.querySelectorAll("thead th").forEach(t => t.classList.remove("sort-asc", "sort-desc"));
         th.classList.add(currentSort.order === 'asc' ? "sort-asc" : "sort-desc");
         applyAll();
       });
     });
+
+    // --- Initial Render ---
+    // Trigger the first render of the table when the page loads
     applyAll();
   });
 </script>
