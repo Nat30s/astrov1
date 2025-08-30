@@ -6,6 +6,12 @@ author: "Hasin Hayder"
 category: "Coding"
 tags: ["development", "best practices", "software"]
 featured: false
+# --- Additional fields for the library ---
+reviewDate: "2025-08-27"
+source: "Blog"
+channel: "My Astro Site"
+sourceLink: "https://astrov1-b1r.pages.dev/"
+description: "A guide to getting started with the Astro Storyteller theme."
 ---
 
 Writing code is easy. Writing clean code is an art form. Clean code is not just about making your program work—it's about creating something that others (including your future self) can understand, maintain, and extend.
