@@ -1,5 +1,4 @@
 ---
-// --- SERVER-SIDE SCRIPT (Runs at build time) ---
 import { getCollection } from 'astro:content';
 import BlogLayout from '../layouts/BlogLayout.astro';
 
@@ -8,7 +7,8 @@ const pageDesc = "A complete, filterable archive of all reviewed content.";
 
 const slugify = (text: string) => {
   if (!text) return '';
-  return text.toString().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+  return text.toString().toLowerCase().replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
 };
 
 const allPosts = await getCollection('article');
@@ -46,7 +46,7 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       <h4>Categories</h4>
       <div id="category-filters">
         {uniqueCategories.map(category => (
-          <label><input type="checkbox" value={category} data-group="category"> {category}</label>
+          <label><input type="checkbox" value={category} data-group="category" /> {category}</label>
         ))}
       </div>
     </div>
@@ -54,7 +54,7 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       <h4>Tags</h4>
       <div id="tag-filters">
         {uniqueTags.map(tag => (
-          <label><input type="checkbox" value={tag} data-group="tag"> {tag}</label>
+          <label><input type="checkbox" value={tag} data-group="tag" /> {tag}</label>
         ))}
       </div>
     </div>
@@ -62,23 +62,24 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       <h4>Sources</h4>
       <div id="source-filters">
         {uniqueSources.map(source => (
-          <label><input type="checkbox" value={source} data-group="source"> {source}</label>
+          <label><input type="checkbox" value={source} data-group="source" /> {source}</label>
         ))}
       </div>
     </div>
   </div>
   <div class="table-wrapper">
     <table>
+      <caption class="sr-only">{pageTitle}</caption>
       <thead>
         <tr>
-          <th data-key="title">Title</th>
-          <th data-key="category">Category</th>
-          <th data-key="tags">Tags</th>
-          <th data-key="reviewDate">Review Date</th>
-          <th data-key="postedDate">Posted Date</th>
-          <th data-key="source">Source</th>
-          <th data-key="channel">Channel/Publication</th>
-          <th>Link</th>
+          <th data-key="title" scope="col">Title</th>
+          <th data-key="category" scope="col">Category</th>
+          <th data-key="tags" scope="col">Tags</th>
+          <th data-key="reviewDate" scope="col">Review Date</th>
+          <th data-key="postedDate" scope="col">Posted Date</th>
+          <th data-key="source" scope="col">Source</th>
+          <th data-key="channel" scope="col">Channel/Publication</th>
+          <th scope="col">Link</th>
         </tr>
       </thead>
       <tbody id="data-table-body">
@@ -99,146 +100,147 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
   </div>
 </BlogLayout>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --bg-color: #f8fafc;
-  --text-color: #212236;
-  --accent-color: #6366f1;
-  --border-color: #e5e7eb;
-  --header-bg: #f6f8fa;
-  --hover-bg: #f0f4fc;
+  --font: system-ui, sans-serif;
+  --bg: #f9fafb;
+  --text: #23272f;
+  --header: #f3f4f6;
+  --border: #e5e7eb;
+  --accent: #6366f1;
+  --hover: #e0e7ff;
 }
 
 body {
-  font-family: var(--font-sans);
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  line-height: 1.65;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
 }
-header { text-align: center; margin-bottom: 2rem; }
-header h1 { font-size: 2.3rem; font-weight: 800; margin-bottom: 0.5rem; }
-header p { font-size: 1.13rem; color: #6b7280; }
 
-/* --- Search Bar with Reset --- */
+header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.2em;
+}
+
+header p { color: #697181; }
+
 .search-bar {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;
+  display: flex; gap: 1em; align-items: center; margin-bottom: 1em;
 }
+
 .search-bar input {
-  width: 320px; padding: 0.5rem 1.1rem;
-  border: 1px solid var(--border-color); border-radius: 10px; font-size: 1.02rem;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(99,102,241,0.04);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 0.7em 1em; font-size: 1em; min-width: 240px; background: #fff;
 }
+
 .reset-btn {
-  padding: 0.5rem 1rem; margin-left: 1rem;
-  border: 1px solid var(--border-color); border-radius: 10px;
-  background-color: var(--header-bg); cursor: pointer; font-size: 0.97rem;
-  transition: background 0.2s;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background-color: var(--header);
+  padding: 0.6em 1.2em;
+  cursor: pointer;
+  font-size: 1em;
 }
-.reset-btn:hover { background-color: var(--hover-bg); }
 
-/* --- Filters --- */
 .filter-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.6rem; margin-bottom: 1rem;
-  background-color: var(--header-bg);
-  border: 1px solid var(--border-color); border-radius: 14px; cursor: pointer;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  display: flex; align-items: center; gap: 1em; 
+  background: var(--header); border: 1px solid var(--border);
+  border-radius: 8px; margin-bottom: 1em; padding: 0.85em 1.2em;
 }
+
 .dropdown-btn {
-  background: none; border: none; font-weight: 700; color: var(--accent-color); cursor: pointer; font-size: 1.2em;
+  padding: 0 0.3em;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
 }
+
 .filters-container {
-  display: none; flex-wrap: wrap; gap: 2.4rem; padding: 1.3rem; margin-bottom: 2rem; background-color: var(--header-bg);
-  border: 1px solid var(--border-color); border-radius: 14px; animation: fadeIn 0.33s ease;
+  display: none;
+  gap: 1.8em; padding: 1em 1.2em 1.5em 1.2em; margin-bottom: 2em;
+  background-color: var(--header);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
-.filter-group { display: flex; flex-direction: column; gap: 0.45rem; }
-.filter-group h4 { font-weight: 700; margin-bottom: 0.4rem; border-bottom: 2px solid var(--accent-color); padding-bottom: 0.18rem;}
-.filter-group div { display: flex; flex-direction: column; }
-.filter-group label { cursor: pointer; display: flex; align-items: center; gap: 0.52rem; padding: 0.18rem 0; }
-.filter-group input[type="checkbox"] { accent-color: var(--accent-color); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Table Styles --- */
-.table-wrapper { overflow-x: auto; margin: 2rem 0; }
+.filter-group { display: flex; flex-direction: column; gap: 0.36em; }
+.filter-group h4 { margin-bottom: 0.3em; font-weight: 600; }
+.filter-group label { cursor: pointer; }
+
+/* Table styles */
+.table-wrapper { overflow-x: auto; }
 table {
-  width: 100%; border-collapse: separate; border-spacing: 0;
+  width: 100%;
+  border-collapse: collapse;
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 3px 16px rgba(99,102,241,0.07);
-  overflow: hidden;
+  border-radius: 7px 7px 0 0;
+  font-size: 1em;
 }
+caption.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 th, td {
-  padding: 18px 16px; border-bottom: 1px solid #f1f1f1; text-align: left; vertical-align: middle;
-  white-space: nowrap;
-  font-size: 1.09em;
+  text-align: left;
+  padding: 0.85em 1em;
+  border-bottom: 1px solid var(--border);
 }
-thead tr { background: #f6f8fa; }
-tbody tr:nth-child(even) { background: #f9fafb; }
-tbody tr:hover { background: #eef2ff; transition: background 0.18s; }
 th {
-  font-weight: 800;
-  color: #383e48;
-  letter-spacing: 0.03em;
-  border-bottom: 2px solid #e3e8ef;
+  font-weight: 650;
+  background: var(--header);
 }
-thead th:first-child { border-top-left-radius: 18px; }
-thead th:last-child { border-top-right-radius: 18px; }
-a {
-  color: var(--accent-color); text-decoration: underline; font-weight: 500;
-  border-radius: 4px;
-  transition: background 0.12s;
+tbody tr:nth-child(even) {
+  background: #f5f6fa;
+}
+tbody tr:hover {
+  background: var(--hover);
 }
 
-/* --- Tag pills --- */
-td a[href*="/tag/"] {
+td a[href*='/tag/'] {
   display: inline-block;
   background: #eef2ff;
-  color: #3730a3;
-  border-radius: 9999px;
-  padding: 3.5px 13px;
-  margin: 2.5px 5px 2.5px 0;
+  color: #23298f;
+  border-radius: 1em;
+  padding: 0.2em 0.8em;
+  margin-right: 0.2em;
   font-size: 0.97em;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 1px 3px rgba(99,102,241,0.08);
 }
 
-/* --- Sort & Pagination --- */
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
 .sort-asc::after { content: " ▲"; font-size: 0.8em; }
 .sort-desc::after { content: " ▼"; font-size: 0.8em; }
-.icon {
-  width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;
-}
-.pagination {
-  display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;
-}
-.page-controls {
-  display: flex; gap: 6px;
-}
-.page-controls button {
-  padding: 5px 10px; border: 1px solid var(--border-color); border-radius: 7px; background: var(--header-bg); cursor: pointer;
-  font-size: 0.98em; box-shadow: 0 0px 3px rgba(99,102,241,0.06);
-}
-.page-controls button.active { background: var(--accent-color); color: white; }
-.page-size { display: flex; align-items: center; gap: 0.6rem; }
-.page-size select {
-  padding: 3.6px 8px; border: 1px solid var(--border-color); border-radius: 7px;
-}
 
-/* --- Responsive --- */
+/* Pagination */
+.pagination {
+  display: flex; gap: 2em; align-items: center;
+  margin-top: 1.8em;
+}
+.page-controls { display: flex; gap: 0.3em; }
+.page-controls button {
+  padding: 0.4em 0.9em;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  background: var(--header);
+}
+.page-controls button.active { background: var(--accent); color: white; }
+.page-size { display: flex; align-items: center; gap: 0.5em; }
+
 @media (max-width: 700px) {
-  .table-wrapper { margin: 1rem 0; }
-  th, td { padding: 11px 8px; font-size: 0.97em; }
-  table { border-radius: 7px; }
+  th, td { padding: 0.56em 0.7em; font-size: 0.99em; }
 }
 </style>
 <script define:vars={{ tableData }}>
   document.addEventListener('DOMContentLoaded', () => {
     const slugify = text => !text ? '' : text.toString().toLowerCase()
-      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+      .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
     const tableBody = document.getElementById('data-table-body');
     const filtersContainer = document.getElementById('filters-container');
     const dropdownBtn = document.getElementById('dropdown-btn');
@@ -250,11 +252,7 @@ td a[href*="/tag/"] {
     let currentSort = { key: null, order: 'asc' };
     let currentPage = 1;
     let pageSize = parseInt(pageSizeSelect.value);
-    const sourceIcons = {
-      Youtube: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="red" viewBox="0 0 24 24"><path d="M23.5 6.2a2.98 2.98 0 0 0-2.1-2.1C19 3.5 12 3.5 12 3.5s-7 0-9.4.6a2.98 2.98 0 0 0-2.1 2.1A31.86 31.86 0 0 0 0 12a31.86 31.86 0 0 0 .5 5.8 2.98 2.98 0 0 0 2.1 2.1C5 20.5 12 20.5 12 20.5s7 0 9.4-.6a2.98 2.98 0 0 0 2.1-2.1A31.86 31.86 0 0 0 24 12a31.86 31.86 0 0 0-.5-5.8zM9.8 15.3V8.7l6.4 3.3-6.4 3.3z"></path></svg>`,
-      News: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M21 6h-3V2H6v4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM8 4h8v2H8V4zm13 16H3V8h2v10h14V8h2v12z"></path><rect x="11" y="10" width="6" height="2"/><rect x="11" y="14" width="6" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="7" y="14" width="2" height="2"/></svg>`,
-      Blog: `<svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="brown" viewBox="0 0 24 24"><path d="M4 22h16v-2H4v2zm0-4h10v-2H4v2zm0-4h16v-2H4v2zm0-4h10V8H4v2zm0-8v2h16V2H4z"/></svg>`
-    };
+
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
@@ -266,7 +264,6 @@ td a[href*="/tag/"] {
       const pageData = data.slice(startIndex, startIndex + pageSize);
       pageData.forEach(item => {
         const tr = document.createElement('tr');
-        const icon = sourceIcons[item.source] || '';
         const tagsHtml = (item.tags || []).map(tag =>
           `<a href="/tag/${slugify(tag)}/">${tag}</a>`
         ).join('');
@@ -276,7 +273,7 @@ td a[href*="/tag/"] {
           <td>${tagsHtml}</td>
           <td>${item.reviewDate || ''}</td>
           <td>${item.postedDate || ''}</td>
-          <td>${icon}${item.source || ''}</td>
+          <td>${item.source || ''}</td>
           <td>${item.channel || ''}</td>
           <td>
             <a href="${item.postLink}" target="_blank">Post</a>
