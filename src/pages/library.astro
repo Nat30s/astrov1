@@ -31,7 +31,7 @@ const tableData = allPosts.map(post => ({
   category: post.data.category,
   tags: post.data.tags || [],
   reviewDate: post.data.reviewDate,
-  postedDate: post.data.postedDate,
+  postedDate: post.data.pubDate,
   source: post.data.source,
   channel: post.data.channel,
   postLink: `/article/${post.slug}/`, // Construct the correct URL for articles
