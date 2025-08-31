@@ -1,25 +1,35 @@
 ---
-// --- SERVER-SIDE SCRIPT ---
+// --- SERVER-SIDE SCRIPT (Runs at build time) ---
 
-// MODIFIED: We now import the Header and Footer components directly
+// 1. IMPORT necessary functions and components
 import BlogLayout from '../layouts/BlogLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { getCollection } from 'astro:content';
 
+// Page metadata
 const pageTitle = "Interactive Content Library";
 const pageDesc = "A complete, filterable archive of all reviewed content.";
 
-const slugify = (text: string) => { /* ... function is unchanged ... */ };
-const allPosts = await getCollection('article');
-const tableData = allPosts.map(post => ({ /* ... mapping is unchanged ... */ }));
-const uniqueCategories = [/* ... unchanged ... */];
-const uniqueTags = [/* ... unchanged ... */];
-const uniqueSources = [/* ... unchanged ... */];
+// NOTE: The extra 'slugify' function has been removed from here to fix the build error.
 
-// --- Unchanged Functions (pasted for completeness) ---
-const slugify = (text: string) => { if (!text) return ''; return text.toString().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, ''); };
-const tableData = allPosts.map(post => ({ title: post.data.title, category: post.data.category, tags: post.data.tags || [], reviewDate: post.data.reviewDate, postedDate: post.data.postedDate, source: post.data.source, channel: post.data.channel, postLink: `/article/${post.slug}/`, sourceLink: post.data.sourceLink }));
+// 2. FETCH posts from your 'article' collection.
+const allPosts = await getCollection('article');
+
+// 3. MAP the data into the structure our table needs
+const tableData = allPosts.map(post => ({
+  title: post.data.title,
+  category: post.data.category,
+  tags: post.data.tags || [],
+  reviewDate: post.data.reviewDate,
+  postedDate: post.data.postedDate,
+  source: post.data.source,
+  channel: post.data.channel,
+  postLink: `/article/${post.slug}/`, // Constructing the correct URL for articles
+  sourceLink: post.data.sourceLink
+}));
+
+// Automatically generate unique lists for the filter checkboxes
 const uniqueCategories = [...new Set(tableData.map(item => item.category).filter(Boolean))];
 const uniqueTags = [...new Set(tableData.flatMap(item => item.tags).filter(Boolean))];
 const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Boolean))];
