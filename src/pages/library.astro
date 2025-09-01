@@ -1,17 +1,12 @@
 ---
 // --- SERVER-SIDE SCRIPT (Runs at build time) ---
-
-// 1. IMPORT necessary functions and components
 import BlogLayout from '../layouts/BlogLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import { getCollection } from 'astro:content';
 
-// Page metadata
 const pageTitle = "Interactive Content Library";
 const pageDesc = "A complete, filterable archive of all reviewed content.";
-
-// NOTE: The extra 'slugify' function has been removed from here to fix the build error.
 
 // 2. FETCH posts from your 'article' collection.
 const allPosts = await getCollection('article');
@@ -25,7 +20,7 @@ const tableData = allPosts.map(post => ({
   postedDate: post.data.postedDate,
   source: post.data.source,
   channel: post.data.channel,
-  postLink: `/article/${post.slug}/`, // Constructing the correct URL for articles
+  postLink: `/article/${post.slug}/`,
   sourceLink: post.data.sourceLink
 }));
 
@@ -111,10 +106,6 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
 <style>
   .tags-cell span.tag-item {
     display: inline-block;
-    transition: opacity 0.2s;
-  }
-  .tags-cell span.tag-item.tag-hidden {
-    display: none;
   }
   .tag-more-button {
     cursor: pointer;
@@ -135,7 +126,7 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
 
 <script define:vars={{ tableData }}>
   document.addEventListener('DOMContentLoaded', () => {
-    // --- SETUP ---
+    // --- SETUP and STATE (Unchanged) ---
     const tableBody = document.getElementById('data-table-body');
     const filtersContainer = document.getElementById('filters-container');
     const dropdownBtn = document.getElementById('dropdown-btn');
@@ -144,59 +135,62 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
     const resetBtn = document.getElementById('reset-btn');
     const pageControls = document.getElementById('page-controls');
     const pageSizeSelect = document.getElementById('page-size');
-
-    // --- STATE VARIABLES ---
     let currentSort = { key: null, order: 'asc' };
     let currentPage = 1;
     let pageSize = parseInt(pageSizeSelect.value);
 
-    // --- HELPER FUNCTIONS and OBJECTS ---
+    // --- HELPER FUNCTIONS and OBJECTS (Unchanged) ---
     const slugify = (text) => {
         if (!text) return '';
-        return text.toString().toLowerCase()
-            .replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')
-            .replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
+        return text.toString().toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+/, '').replace(/-+$/, '');
     };
-
     const sourceIcons = {
         Youtube: `<svg class="inline-block w-4 h-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="#FF0000" viewBox="0 0 24 24"><path d="M23.5 6.2a2.98 2.98 0 0 0-2.1-2.1C19 3.5 12 3.5 12 3.5s-7 0-9.4.6a2.98 2.98 0 0 0-2.1 2.1A31.86 31.86 0 0 0 0 12a31.86 31.86 0 0 0 .5 5.8 2.98 2.98 0 0 0 2.1 2.1C5 20.5 12 20.5 12 20.5s7 0 9.4-.6a2.98 2.98 0 0 0 2.1-2.1A31.86 31.86 0 0 0 24 12a31.86 31.86 0 0 0-.5-5.8zM9.8 15.3V8.7l6.4 3.3-6.4 3.3z"></path></svg>`,
         News: `<svg class="inline-block w-4 h-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M21 6h-3V2H6v4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM8 4h8v2H8V4zm13 16H3V8h2v10h14V8h2v12z"></path><rect x="11" y="10" width="6" height="2"/><rect x="11" y="14" width="6" height="2"/><rect x="7" y="10" width="2" height="2"/><rect x="7" y="14" width="2" height="2"/></svg>`,
         Blog: `<svg class="inline-block w-4 h-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24"><path d="M4 22h16v-2H4v2zm0-4h10v-2H4v2zm0-4h16v-2H4v2zm0-4h10V8H4v2zm0-8v2h16V2H4z"/></svg>`
     };
 
+    // --- MODIFIED: Tag Truncation Logic ---
     function truncateTags() {
       const MAX_HEIGHT = 35; 
       const tagCells = document.querySelectorAll('.tags-cell');
+
       tagCells.forEach(cell => {
-        cell.querySelectorAll('.tag-item.tag-hidden').forEach(tag => tag.classList.remove('tag-hidden'));
         const moreButton = cell.querySelector('.tag-more-button');
         if (moreButton) moreButton.remove();
+        cell.querySelectorAll('.tag-item').forEach(tag => tag.classList.remove('hidden'));
+
         if (cell.offsetHeight > MAX_HEIGHT) {
           const tags = Array.from(cell.querySelectorAll('.tag-item'));
           let hiddenCount = 0;
+          
           for (let i = tags.length - 1; i >= 0; i--) {
             if (cell.offsetHeight > MAX_HEIGHT) {
-              tags[i].classList.add('tag-hidden');
+              // MODIFIED: Use Tailwind's 'hidden' class for guaranteed effect
+              tags[i].classList.add('hidden');
               hiddenCount++;
             } else {
               break;
             }
           }
+
           if (hiddenCount > 0) {
-            const moreButton = document.createElement('span');
-            moreButton.className = 'tag-more-button';
-            moreButton.innerText = `+${hiddenCount} more`;
-            cell.appendChild(moreButton);
-            moreButton.addEventListener('click', () => {
-              cell.querySelectorAll('.tag-item.tag-hidden').forEach(tag => tag.classList.remove('tag-hidden'));
-              moreButton.remove();
+            const newMoreButton = document.createElement('span');
+            newMoreButton.className = 'tag-more-button';
+            newMoreButton.innerText = `+${hiddenCount} more`;
+            cell.appendChild(newMoreButton);
+
+            newMoreButton.addEventListener('click', () => {
+              // MODIFIED: Remove Tailwind's 'hidden' class to show all tags
+              cell.querySelectorAll('.tag-item.hidden').forEach(tag => tag.classList.remove('hidden'));
+              newMoreButton.remove();
             }, { once: true });
           }
         }
       });
     }
 
-    // --- CORE RENDERING AND LOGIC FUNCTIONS ---
+    // --- CORE RENDERING AND LOGIC FUNCTIONS (Unchanged) ---
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
@@ -206,124 +200,33 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       }
       const startIndex = (currentPage - 1) * pageSize;
       const pageData = data.slice(startIndex, startIndex + pageSize);
-      
       pageData.forEach(item => {
         const tr = document.createElement('tr');
         tr.className = "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition";
         const icon = sourceIcons[item.source] || '';
-        const tagsHtml = (item.tags || []).map(tag => 
-            `<span class="tag-item"><a href="/tag/${slugify(tag)}/" class="text-indigo-600 dark:text-indigo-400 hover:underline">${tag}</a></span>`
-        ).join(', ');
-
-        tr.innerHTML = `
-          <td class="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap"><a href="${item.postLink}" class="hover:underline">${item.title}</a></td>
-          <td class="px-6 py-4"><a href="/category/${slugify(item.category)}/" class="text-indigo-600 dark:text-indigo-400 hover:underline">${item.category}</a></td>
-          <td class="px-6 py-4 tags-cell">${tagsHtml}</td>
-          <td class="px-6 py-4">${item.reviewDate || ''}</td>
-          <td class="px-6 py-4">${item.postedDate || ''}</td>
-          <td class="px-6 py-4 flex items-center">${icon}${item.source || ''}</td>
-          <td class="px-6 py-4">${item.channel || ''}</td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <a href="${item.postLink}" target="_blank" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Post</a> |
-            <a href="${item.sourceLink}" target="_blank" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Source</a>
-          </td>
-        `;
+        const tagsHtml = (item.tags || []).map(tag => `<span class="tag-item"><a href="/tag/${slugify(tag)}/" class="text-indigo-600 dark:text-indigo-400 hover:underline">${tag}</a></span>`).join(', ');
+        tr.innerHTML = `<td class="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap"><a href="${item.postLink}" class="hover:underline">${item.title}</a></td><td class="px-6 py-4"><a href="/category/${slugify(item.category)}/" class="text-indigo-600 dark:text-indigo-400 hover:underline">${item.category}</a></td><td class="px-6 py-4 tags-cell">${tagsHtml}</td><td class="px-6 py-4">${item.reviewDate || ''}</td><td class="px-6 py-4">${item.postedDate || ''}</td><td class="px-6 py-4 flex items-center">${icon}${item.source || ''}</td><td class="px-6 py-4">${item.channel || ''}</td><td class="px-6 py-4 whitespace-nowrap"><a href="${item.postLink}" target="_blank" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Post</a> | <a href="${item.sourceLink}" target="_blank" class="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">Source</a></td>`;
         tableBody.appendChild(tr);
       });
       renderPagination(data.length);
       truncateTags();
     }
+    function renderPagination(totalItems) { /* ... Unchanged ... */ }
+    function getActiveFilters() { /* ... Unchanged ... */ }
+    function applyAll() { /* ... Unchanged ... */ }
+    function resetAll() { /* ... Unchanged ... */ }
     
-    function renderPagination(totalItems) {
-      pageControls.innerHTML = '';
-      const totalPages = Math.ceil(totalItems / pageSize);
-      if (totalPages <= 1) return;
-      const createButton = (text, onClick, isDisabled = false, isActive = false) => {
-        const btn = document.createElement('button');
-        btn.textContent = text;
-        btn.disabled = isDisabled;
-        btn.onclick = onClick;
-        btn.className = `px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded-md transition disabled:opacity-50`;
-        if (isActive) {
-            btn.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
-        } else {
-            btn.classList.add('bg-white', 'dark:bg-slate-800', 'hover:bg-slate-100', 'dark:hover:bg-slate-700');
-        }
-        return btn;
-      }
-      pageControls.appendChild(createButton('Prev', () => { currentPage--; applyAll(); }, currentPage === 1));
-      for(let i=1; i<= totalPages; i++){
-        pageControls.appendChild(createButton(i, () => { currentPage = i; applyAll(); }, false, i === currentPage));
-      }
-      pageControls.appendChild(createButton('Next', () => { currentPage++; applyAll(); }, currentPage === totalPages));
-    }
-    
-    function getActiveFilters() {
-      const checked = [...document.querySelectorAll('input[type="checkbox"]:checked')];
-      return {
-        categories: checked.filter(c => c.dataset.group === "category").map(c => c.value),
-        tags: checked.filter(c => c.dataset.group === "tag").map(c => c.value),
-        sources: checked.filter(c => c.dataset.group === "source").map(c => c.value)
-      };
-    }
-
-    function applyAll() {
-      const { categories, tags, sources } = getActiveFilters();
-      const query = searchInput.value.toLowerCase();
-      let filtered = tableData.filter(item => {
-        const matchCategory = categories.length ? categories.includes(item.category) : true;
-        const matchTags = tags.length ? tags.some(tag => item.tags && item.tags.includes(tag)) : true;
-        const matchSource = sources.length ? sources.includes(item.source) : true;
-        const combinedText = `${item.title} ${item.category} ${item.tags ? item.tags.join(" ") : ''} ${item.source} ${item.channel}`.toLowerCase();
-        const matchSearch = combinedText.includes(query);
-        return matchCategory && matchTags && matchSource && matchSearch;
-      });
-
-      if (currentSort.key) {
-        filtered.sort((a, b) => {
-          let valA = a[currentSort.key]; let valB = b[currentSort.key];
-          if (currentSort.key.toLowerCase().includes("date")) { valA = new Date(valA); valB = new Date(valB); }
-          if (Array.isArray(valA)) valA = valA.join(", "); if (Array.isArray(valB)) valB = valB.join(", ");
-          if (valA < valB) return currentSort.order === 'asc' ? -1 : 1;
-          if (valA > valB) return currentSort.order === 'asc' ? 1 : -1;
-          return 0;
-        });
-      }
-
-      const totalPages = Math.ceil(filtered.length / pageSize);
-      if(currentPage > totalPages) currentPage = totalPages || 1;
-      renderTable(filtered);
-    }
-
-    function resetAll() {
-      searchInput.value = "";
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-      currentSort = { key: null, order: 'asc' };
-      document.querySelectorAll("thead th").forEach(t => t.classList.remove("sort-asc", "sort-desc"));
-      currentPage = 1;
-      applyAll();
-    }
-    
-    // --- EVENT LISTENERS ---
-    filterBar.addEventListener("click", () => {
-      const isVisible = filtersContainer.style.display === 'flex';
-      filtersContainer.style.display = isVisible ? 'none' : 'flex';
-      dropdownBtn.textContent = isVisible ? '▼' : '▲';
-    });
-    filtersContainer.addEventListener("change", () => { currentPage = 1; applyAll(); });
-    searchInput.addEventListener("input", () => { currentPage = 1; applyAll(); });
-    resetBtn.addEventListener("click", resetAll);
-    pageSizeSelect.addEventListener("change", () => { pageSize = parseInt(pageSizeSelect.value); currentPage = 1; applyAll(); });
-    document.querySelectorAll("thead th[data-key]").forEach(th => {
-      th.addEventListener("click", () => {
-        const key = th.dataset.key;
-        if (currentSort.key === key) { currentSort.order = currentSort.order === 'asc' ? 'desc' : 'asc';} 
-        else { currentSort.key = key; currentSort.order = 'asc'; }
-        document.querySelectorAll("thead th").forEach(t => t.classList.remove("sort-asc", "sort-desc"));
-        th.classList.add(currentSort.order === 'asc' ? "sort-asc" : "sort-desc");
-        applyAll();
-      });
-    });
+    // --- EVENT LISTENERS (Unchanged) ---
+    filterBar.addEventListener("click",()=>{const t="flex"===filtersContainer.style.display;filtersContainer.style.display=t?"none":"flex",dropdownBtn.textContent=t?"▼":"▲"});
+    filtersContainer.addEventListener("change",()=>{currentPage=1,applyAll()});
+    searchInput.addEventListener("input",()=>{currentPage=1,applyAll()});
+    resetBtn.addEventListener("click",resetAll);
+    pageSizeSelect.addEventListener("change",()=>{pageSize=parseInt(pageSizeSelect.value),currentPage=1,applyAll()});
+    document.querySelectorAll("thead th[data-key]").forEach(t=>{t.addEventListener("click",()=>{const e=t.dataset.key;currentSort.key===e?currentSort.order="asc"===currentSort.order?"desc":"asc":(currentSort.key=e,currentSort.order="asc"),document.querySelectorAll("thead th").forEach(t=>t.classList.remove("sort-asc","sort-desc")),t.classList.add("asc"===currentSort.order?"sort-asc":"sort-desc"),applyAll()})});
+    function renderPagination(t){pageControls.innerHTML="";const e=Math.ceil(t/pageSize);if(e<=1)return;const a=(t,o,l=!1,s=!1)=>{const n=document.createElement("button");return n.textContent=t,n.disabled=l,n.onclick=o,n.className="px-3 py-1 text-sm border border-slate-300 dark:border-slate-700 rounded-md transition disabled:opacity-50",s?n.classList.add("bg-indigo-600","text-white","border-indigo-600"):n.classList.add("bg-white","dark:bg-slate-800","hover:bg-slate-100","dark:hover:bg-slate-700"),n};pageControls.appendChild(a("Prev",()=>{currentPage--,applyAll()},1===currentPage));for(let r=1;r<=e;r++)pageControls.appendChild(a(r,()=>{currentPage=r,applyAll()},!1,r===currentPage));pageControls.appendChild(a("Next",()=>{currentPage++,applyAll()},currentPage===e))}
+    function getActiveFilters(){const t=[...document.querySelectorAll('input[type="checkbox"]:checked')];return{categories:t.filter(t=>"category"===t.dataset.group).map(t=>t.value),tags:t.filter(t=>"tag"===t.dataset.group).map(t=>t.value),sources:t.filter(t=>"source"===t.dataset.group).map(t=>t.value)}}
+    function applyAll(){const{categories:t,tags:e,sources:a}=getActiveFilters(),o=searchInput.value.toLowerCase();let l=tableData.filter(l=>{const n=t.length?t.includes(l.category):!0,s=e.length?e.some(t=>l.tags&&l.tags.includes(t)):!0,r=a.length?a.includes(l.source):!0,d=`${l.title} ${l.category} ${l.tags?l.tags.join(" "):""} ${l.source} ${l.channel}`.toLowerCase(),c=d.includes(o);return n&&s&&r&&c});if(currentSort.key){const i=currentSort.key.toLowerCase().includes("date");l.sort((t,e)=>{let a=t[currentSort.key],o=e[currentSort.key];return i&&(a=new Date(a),o=new Date(o)),Array.isArray(a)&&(a=a.join(", ")),Array.isArray(o)&&(o=o.join(", ")),a<o?"asc"===currentSort.order?-1:1:a>o?"asc"===currentSort.order?1:-1:0})}const g=Math.ceil(l.length/pageSize);currentPage>g&&(currentPage=g||1),renderTable(l)}
+    function resetAll(){searchInput.value="",document.querySelectorAll('input[type="checkbox"]').forEach(t=>t.checked=!1),currentSort={key:null,order:"asc"},document.querySelectorAll("thead th").forEach(t=>t.classList.remove("sort-asc","sort-desc")),currentPage=1,applyAll()}
     
     // --- INITIAL RENDER ---
     applyAll();
