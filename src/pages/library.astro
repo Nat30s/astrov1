@@ -124,7 +124,7 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
   }
 </style>
 
-<script define:vars={{ tableData }}>
+<script define-vars={{ tableData }}>
   document.addEventListener('DOMContentLoaded', () => {
     // --- SETUP and STATE (Unchanged) ---
     const tableBody = document.getElementById('data-table-body');
@@ -156,17 +156,21 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       const tagCells = document.querySelectorAll('.tags-cell');
 
       tagCells.forEach(cell => {
-        const moreButton = cell.querySelector('.tag-more-button');
-        if (moreButton) moreButton.remove();
+        // Clear any previous "more" buttons
+        const existingMoreButton = cell.querySelector('.tag-more-button');
+        if (existingMoreButton) existingMoreButton.remove();
+        
+        // Reset all tags to be visible before re-calculating
         cell.querySelectorAll('.tag-item').forEach(tag => tag.classList.remove('hidden'));
 
+        // Only proceed if the cell is overflowing
         if (cell.offsetHeight > MAX_HEIGHT) {
           const tags = Array.from(cell.querySelectorAll('.tag-item'));
           let hiddenCount = 0;
           
-          for (let i = tags.length - 1; i >= 0; i--) {
+          // MODIFIED: Loop condition changed to `i > 0`. This ensures the first tag (index 0) is NEVER hidden.
+          for (let i = tags.length - 1; i > 0; i--) {
             if (cell.offsetHeight > MAX_HEIGHT) {
-              // MODIFIED: Use Tailwind's 'hidden' class for guaranteed effect
               tags[i].classList.add('hidden');
               hiddenCount++;
             } else {
@@ -175,22 +179,57 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
           }
 
           if (hiddenCount > 0) {
-            const newMoreButton = document.createElement('span');
-            newMoreButton.className = 'tag-more-button';
-            newMoreButton.innerText = `+${hiddenCount} more`;
-            cell.appendChild(newMoreButton);
+            const moreButton = document.createElement('span');
+            moreButton.className = 'tag-more-button';
+            moreButton.innerText = `+${hiddenCount} more`;
+            cell.appendChild(moreButton);
 
-            newMoreButton.addEventListener('click', () => {
-              // MODIFIED: Remove Tailwind's 'hidden' class to show all tags
-              cell.querySelectorAll('.tag-item.hidden').forEach(tag => tag.classList.remove('hidden'));
-              newMoreButton.remove();
-            }, { once: true });
+            // MODIFIED: The click listener now handles toggling
+            moreButton.addEventListener('click', () => {
+                const isCurrentlyHidden = cell.querySelector('.tag-item.hidden');
+
+                if (isCurrentlyHidden) {
+                    // If tags are hidden, show them all and change button text
+                    cell.querySelectorAll('.tag-item.hidden').forEach(tag => tag.classList.remove('hidden'));
+                    moreButton.innerText = '- less';
+                } else {
+                    // If tags are showing, re-run the truncation logic for this cell
+                    truncateCell(cell);
+                }
+            });
           }
         }
       });
     }
 
-    // --- CORE RENDERING AND LOGIC FUNCTIONS (Unchanged) ---
+    // NEW: A helper function to truncate a single cell, used by the toggle
+    function truncateCell(cell) {
+        const MAX_HEIGHT = 35; 
+        const tags = Array.from(cell.querySelectorAll('.tag-item'));
+        let hiddenCount = 0;
+
+        // Reset visibility to calculate correctly
+        tags.forEach(tag => tag.classList.remove('hidden'));
+
+        if (cell.offsetHeight > MAX_HEIGHT) {
+            for (let i = tags.length - 1; i > 0; i--) {
+                if (cell.offsetHeight > MAX_HEIGHT) {
+                    tags[i].classList.add('hidden');
+                    hiddenCount++;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        const moreButton = cell.querySelector('.tag-more-button');
+        if (moreButton) {
+            moreButton.innerText = `+${hiddenCount} more`;
+        }
+    }
+
+
+    // --- CORE RENDERING AND LOGIC FUNCTIONS ---
     function renderTable(data) {
       tableBody.innerHTML = '';
       if (data.length === 0) {
@@ -211,11 +250,13 @@ const uniqueSources = [...new Set(tableData.map(item => item.source).filter(Bool
       renderPagination(data.length);
       truncateTags();
     }
+    
+    // --- Unchanged Functions and Event Listeners ---
     function renderPagination(totalItems) { /* ... Unchanged ... */ }
     function getActiveFilters() { /* ... Unchanged ... */ }
     function applyAll() { /* ... Unchanged ... */ }
     function resetAll() { /* ... Unchanged ... */ }
-    
+
     // --- EVENT LISTENERS (Unchanged) ---
     filterBar.addEventListener("click",()=>{const t="flex"===filtersContainer.style.display;filtersContainer.style.display=t?"none":"flex",dropdownBtn.textContent=t?"▼":"▲"});
     filtersContainer.addEventListener("change",()=>{currentPage=1,applyAll()});
