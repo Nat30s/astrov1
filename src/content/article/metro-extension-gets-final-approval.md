@@ -1,11 +1,15 @@
 ---
-title: Metro extension gets final approval
-description: Timeline of the eastern metro extension approval.
+title: "Metro extension gets final approval"
+description: "Timeline of the eastern metro extension approval."
 pubDate: 2026-09-29
-author: The Storyteller
-category: Transport
-tags: [metro, transport, news]
+author: "Storyteller"
+category: "Transport"
+tags: ["metro", "transport", "news"]
+featured: false
+thumb: "https://images.unsplash.com/photo-1522115900503-5dc493006ffd?auto=format&fit=crop&w=400&q=80"
+large: "https://images.unsplash.com/photo-1522115900503-5dc493006ffd?auto=format&fit=crop&w=2400&q=80"
 ---
+
 
 The eastern extension has been moving through the approval process since September. Updates are listed newest first.
 
